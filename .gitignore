@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Xcode user data (window layout, breakpoints, personal schemes)
+xcuserdata/
+
+# Xcode build products
+build/
+DerivedData/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Swift Package Manager (local checkouts / build cache)
+.build/
+.swiftpm/
