@@ -128,6 +128,8 @@ Session type: `TypeUp/ViewModels/TypingViewModel.swift` (`@MainActor @Observable
 
 ## Slice order (future development)
 
+Why-this-then-that graphs: [SLICE_ORDER.md](SLICE_ORDER.md) (open with Markdown preview).
+
 A slice is something Kean can run and see. Do these **in `TypingViewModel` + `MainMenuView`**. Leave Settings as a stub until G.
 
 | | Slice | Why |

@@ -48,8 +48,8 @@ struct MainMenuView: View {
                 }
                 .font(.system(size: 18, design: .monospaced))
                 
-                Text("this they are how why turn many late of then play")
-                    .font(.system(size: 20, design: .monospaced))
+                TypingView(words: viewModel.words)
+//                    .font(.system(size: 20, design: .monospaced))
                 
                 
                 VStack (spacing: 2){
