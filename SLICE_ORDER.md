@@ -34,7 +34,7 @@ flowchart TB
   Done["Already done: 15/30/60 + Date countdown"] -.-> B
   Done -.-> F
 
-  Park["Parked: History, WPM, two corpora, leftover Task list"]
+  Park["Parked: H backspace onto previous word, History, WPM, two corpora, leftover Task list"]
 ```
 
 Same chain as a straight pipeline (what you type next):
@@ -47,6 +47,8 @@ flowchart LR
   B --> F
   A --> G["G Settings knobs"]
   F --> G
+  C -.-> H["H Backspace previous word (later)"]
+  E -.-> H
 ```
 
 Where “show words” vs “each key is written” sit:

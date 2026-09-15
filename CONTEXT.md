@@ -136,14 +136,15 @@ A slice is something Kean can run and see. Do these **in `TypingViewModel` + `Ma
 |---|---|---|
 | **Done** | Timer: cycle 15/30/60, Date countdown, restart | First real session state |
 | **A** | **One word bank + generate a list + show it** | Replaces the dummy sentence. Load `en_1k.json` from the bundle, shuffle, fill `words: [String]`. Not two corpora. `restart()` reshuffles. `[String]` is the model — not SwiftData, not a second ViewModel. Do not re-download or duplicate the JSON. |
-| **B** | **Keystrokes into the session** | First character → `beginCountdown()`. Then remove the debug start button. `MenuBarExtra` must actually receive keys (first responder / focus). Treat this as its own slice. |
-| **C** | **Recognition** | `currentIndex` + typed buffer for that word. Letter vs expected letter. Extra letters past the target. **Space commits** (even if wrong) and advances. **Backspace** belongs here. |
+| **B** | **Keystrokes into the session** 3| First character → `beginCountdown()`. Then remove the debug start button. `MenuBarExtra` must actually receive keys (first responder / focus). Treat this as its own slice. |
+| **C** | **Recognition** | `currentIndex` + typed buffer for that word. Letter vs expected letter. Extra letters past the target. **Space commits** (even if wrong) and advances. **Backspace current word only** — empty buffer is a no-op; does **not** un-commit the previous word. |
 | **D** | **Color** | Untyped / correct / incorrect per character. View of C’s state, not a second brain. |
 | **E** | **Viewport** | Caret glued to the first visible word; list jumps left on space; no animation. After C works on a static line so layout and matching are not debugged at once. |
 | **F** | **Time remaining == 0 → ignore further keys** | Only meaningful once B–C exist. |
 | **G** | **Settings: punctuation, capitalization, optional 1000 vs 5000** | Inputs to the generator from A. Build A as plain lowercase words so G is a transform, not a rewrite. Own Settings with its **own** ViewModel when that screen has real state. Wire the gear `NavigationLink` to `SettingsView` as part of this work (not before). |
+| **H** *(later)* | **Backspace onto previous word** | Monkeytype-default: if `typedBuffer` is empty and `currentIndex > 0`, backspace **un-commits** — `currentIndex -= 1`, restore that word’s typed string (e.g. `"thenjs"`), so extra letters can be deleted. Needs C’s commit **and** keeping per-word buffers, not throwing them away on space. Do **not** build this in C. |
 
-**Park until after Typing Mode:** History, WPM, dual JSON corpora, fixing history’s `NavigationLink`, deleting the leftover `Task` types (optional cleanup, never required to move A forward).
+**Park until after Typing Mode:** **H** (backspace onto previous word), History, WPM, dual JSON corpora, fixing history’s `NavigationLink`, deleting the leftover `Task` types (optional cleanup, never required to move A forward).
 
 A and B can swap if Kean wants keys on the dummy sentence first. Prefer **A then B**: the dummy string will be thrown away, and A is how `restart()` becomes real.
 
@@ -158,4 +159,5 @@ Word-at-a-time, not “the whole sentence as one string”:
 - For each index `i` in the buffer: match `target[i]` or mark incorrect.
 - Letters past `target.count` are extra-incorrect (still shown).
 - Space: commit, `currentIndex += 1`, buffer = `""` (that commit is also when the list jumps, slice E).
+- Backspace: `removeLast()` on `typedBuffer` only. Empty buffer → do nothing. Does **not** decrement `currentIndex` (that is **H**, later).
 - First key of the session (`startDate == nil`): `beginCountdown()`.

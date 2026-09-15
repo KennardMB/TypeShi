@@ -13,6 +13,7 @@ struct TypingView: View {
     var body: some View {
         Text(words.joined(separator: " "))
             .font(.system(size: 18, design: .monospaced))
+        
     }
 }
 

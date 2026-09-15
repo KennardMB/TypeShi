@@ -10,6 +10,8 @@ import SwiftUI
 struct MainMenuView: View {
     
     @State private var viewModel = TypingViewModel()
+    @FocusState private var isTypingFocused: Bool
+    
     
     
     var body: some View {
@@ -48,15 +50,35 @@ struct MainMenuView: View {
                 }
                 .font(.system(size: 18, design: .monospaced))
                 
+                //words view
                 TypingView(words: viewModel.words)
-//                    .font(.system(size: 20, design: .monospaced))
+                    .focusable()
+                    .focusEffectDisabled()
+                    .focused($isTypingFocused)
+                    .onKeyPress { press in
+                        print("key:", press.key, "chars:", String(describing: press.characters))
+                        
+                        switch press.key {
+                        case .delete, KeyEquivalent("\u{7F}"):
+                            viewModel.handleBackspace()
+                        case .space:
+                            viewModel.commitWord()
+                        default:
+                            viewModel.handleTypedCharacters(press.characters)
+                        }
+                        return .handled
+                    }
+                    .onAppear {
+                        isTypingFocused = true
+                    }
+                
+                Text("\(viewModel.currentIndex) |\(viewModel.typedBuffer)|")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                
                 
                 
                 VStack (spacing: 2){
-                    Button("Begin Countdown (debug)"){
-                        viewModel.beginCountdown()
-                    }
-
                     Button("Restart (tab)"){
                         viewModel.restart()
                     }
