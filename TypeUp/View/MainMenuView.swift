@@ -17,6 +17,7 @@ struct MainMenuView: View {
     var body: some View {
         NavigationStack{
             VStack (alignment: .leading){
+                //timer, setting, history
                 HStack (){
                     // If timer is NOT ON
                     if viewModel.startDate == nil {
@@ -48,7 +49,7 @@ struct MainMenuView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
-                .font(.system(size: 18, design: .monospaced))
+                .font(.system(size: 13, design: .monospaced))
                 
                 //words view
                 TypingView(viewModel: viewModel)
@@ -88,6 +89,7 @@ struct MainMenuView: View {
                         NSApplication.shared.terminate(nil)
                     }
                 }
+                .font(.system(size: 11))
                 .frame(maxWidth: .infinity)
             }
             .padding()

@@ -71,7 +71,6 @@ final class TypingViewModel {
     
     //TIMER
     func remainingSeconds(at now: Date) -> Int {
-        print(isFinished)
         guard let startDate else {
             return selectedDuration.rawValue
         }

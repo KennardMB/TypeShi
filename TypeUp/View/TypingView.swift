@@ -21,7 +21,9 @@ struct TypingView: View {
                     .lineLimit(1)
             }
         }
-        .font(.system(size: 18, design: .monospaced))
+        .font(.system(size: 16, design: .monospaced))
+        .frame(maxWidth: 500, alignment: .leading)
+        .clipped()
     }
     
     @ViewBuilder
