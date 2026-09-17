@@ -24,8 +24,17 @@ final class TypingViewModel {
         }
     }
     
+    // case for judge
+    enum LetterState {
+        case untyped
+        case correct
+        case incorrect
+        case extraIncorrect
+    }
+    
     var selectedDuration: Duration = .fifteen
     private(set) var startDate: Date?
+    var isFinished: Bool = false
     
     //Keypress
     var typedBuffer: String = ""
@@ -62,13 +71,16 @@ final class TypingViewModel {
     
     //TIMER
     func remainingSeconds(at now: Date) -> Int {
+        print(isFinished)
         guard let startDate else {
             return selectedDuration.rawValue
         }
-        let elapsed = now.timeIntervalSince(startDate) // returns a Double
-        return max(0, selectedDuration.rawValue - Int(elapsed)) // max for date before now, Int(elapsed) changes from Double to Int
-        // elapsed = (time since start of trigger)
-        // remainingSeconds = (selected duration) - (time since start of trigger)
+        let elapsed = now.timeIntervalSince(startDate)
+        let remaining = max(0, selectedDuration.rawValue - Int(elapsed))
+        if remaining == 0 {
+            isFinished = true
+        }
+        return remaining
     }
     
     func cycleDuration() {
@@ -87,7 +99,7 @@ final class TypingViewModel {
         let letters = characters.filter { !$0.isWhitespace }
         guard !letters.isEmpty else { return }
         beginCountdown()
-        typedBuffer.append(contentsOf: characters)
+        typedBuffer.append(contentsOf: letters)
     }
     
     func handleBackspace() {
@@ -101,6 +113,17 @@ final class TypingViewModel {
         typedBuffer = ""
     }
     
+    // JUDGE JUDY
+    func letterState(at index: Int) -> LetterState {
+        guard currentIndex < words.count else { return .untyped}
+        let target = words[currentIndex]
+        let targetChars = Array(target)
+        let bufferChars = Array(typedBuffer)
+        
+        if index >= bufferChars.count { return .untyped}
+        if index >= targetChars.count { return .extraIncorrect }
+        return bufferChars[index] == targetChars[index] ? .correct : .incorrect
+    }
     
     //word randomizer takes 200 words from bank
     private func generatePrompt() {
@@ -113,6 +136,7 @@ final class TypingViewModel {
         typedBuffer = ""
         currentIndex = 0
         generatePrompt()
+        isFinished = false
     }
     
 }

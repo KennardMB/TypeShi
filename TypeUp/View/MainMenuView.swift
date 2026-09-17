@@ -51,7 +51,7 @@ struct MainMenuView: View {
                 .font(.system(size: 18, design: .monospaced))
                 
                 //words view
-                TypingView(words: viewModel.words)
+                TypingView(viewModel: viewModel)
                     .focusable()
                     .focusEffectDisabled()
                     .focused($isTypingFocused)
@@ -72,6 +72,7 @@ struct MainMenuView: View {
                         isTypingFocused = true
                     }
                 
+                //DEBUG TYPED BUFFER
                 Text("\(viewModel.currentIndex) |\(viewModel.typedBuffer)|")
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(.secondary)
