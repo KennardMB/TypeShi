@@ -42,6 +42,16 @@ final class TypingViewModel {
     //Judge
     private(set) var currentIndex: Int = 0
     
+    // Remember how many words were exact; expose WPM
+    private(set) var correctWordCount: Int = 0
+    
+    var wpm: Int {
+        let minutes = Double(selectedDuration.rawValue) / 60.0
+        guard minutes > 0 else { return 0 }
+        return Int((Double(correctWordCount) / minutes).rounded())
+    }
+    
+    
     // TypingView Logic
     private let bank : [String]
     var words: [String] = []
@@ -107,6 +117,9 @@ final class TypingViewModel {
     func commitWord() {
         guard !typedBuffer.isEmpty else { return }
         guard remainingSeconds(at: .now) > 0 else { return }
+        if currentIndex < words.count, typedBuffer == words[currentIndex] {
+            correctWordCount += 1
+        }
         currentIndex += 1
         typedBuffer = ""
     }
@@ -133,8 +146,10 @@ final class TypingViewModel {
         startDate = nil
         typedBuffer = ""
         currentIndex = 0
+        correctWordCount = 0
         generatePrompt()
         isFinished = false
+        correctWordCount = 0
     }
     
 }

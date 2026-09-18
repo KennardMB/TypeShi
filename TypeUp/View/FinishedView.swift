@@ -8,11 +8,29 @@
 import SwiftUI
 
 struct FinishedView: View {
+    var viewModel: TypingViewModel
+    
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        VStack{
+            Text("\(viewModel.wpm) WPM")
+            Text("\(viewModel.correctWordCount) Correct Words")
+            
+            VStack(spacing: 2){
+                Button("Restart (tab)") {
+                    viewModel.restart()
+                }
+                Button("Quit (esc)") {
+                    NSApplication.shared.terminate(nil)
+                }
+            }
+        }
+        .font(.system(size: 13, design: .monospaced))
+        .frame(maxWidth: .infinity)
     }
 }
 
 #Preview {
-    FinishedView()
+    @Previewable @State var viewModel = TypingViewModel()
+    FinishedView(viewModel: viewModel)
 }
