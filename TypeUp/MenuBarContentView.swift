@@ -10,6 +10,7 @@ import SwiftUI
 struct MenuBarContentView: View {
     var body: some View {
         MainMenuView()
+            .frame(width: 500)
     }
 }
 

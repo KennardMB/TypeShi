@@ -24,17 +24,67 @@ final class TypingViewModel {
         }
     }
     
+    // case for judge
+    enum LetterState {
+        case untyped
+        case correct
+        case incorrect
+        case extraIncorrect
+    }
+    
     var selectedDuration: Duration = .fifteen
     private(set) var startDate: Date?
     
+    //Keypress
+    var typedBuffer: String = ""
+    
+    //Judge
+    private(set) var currentIndex: Int = 0
+    
+    // Remember how many words were exact; expose WPM
+    private(set) var correctWordCount: Int = 0
+    
+    var wpm: Int {
+        let minutes = Double(selectedDuration.rawValue) / 60.0
+        guard minutes > 0 else { return 0 }
+        return Int((Double(correctWordCount) / minutes).rounded())
+    }
+    
+    
+    // TypingView Logic
+    private let bank : [String]
+    var words: [String] = []
+    
+    init() {
+        bank = Self.loadBank()
+        generatePrompt()
+    }
+    
+    
+    private static func loadBank() -> [String] {
+// this gets the en_1k.json path
+        let url = Bundle.main.url(forResource: "en_1k", withExtension: "json")
+        ?? Bundle.main.url(forResource: "en_1k", withExtension: "json", subdirectory: "Resources")
+        // this says "if you have url (path), then continue as URL (fixed)
+        guard let url else { return [] }
+        do {
+            //getting contents of the path (JSON)
+            let data = try Data(contentsOf: url)
+            return try JSONDecoder().decode([String].self, from: data)
+        } catch {
+            return []
+        }
+        
+    }
+    
+    
+    //TIMER
     func remainingSeconds(at now: Date) -> Int {
         guard let startDate else {
             return selectedDuration.rawValue
         }
-        let elapsed = now.timeIntervalSince(startDate) // returns a Double
-        return max(0, selectedDuration.rawValue - Int(elapsed)) // max for date before now, Int(elapsed) changes from Double to Int
-        // elapsed = (time since start of trigger)
-        // remainingSeconds = (selected duration) - (time since start of trigger)
+        let elapsed = now.timeIntervalSince(startDate)
+        return max(0, selectedDuration.rawValue - Int(elapsed))
     }
     
     func cycleDuration() {
@@ -48,8 +98,61 @@ final class TypingViewModel {
         }
     }
     
+    //Keypress function & Judge
+    func handleTypedCharacters(_ characters: String) {
+        let letters = characters.filter { !$0.isWhitespace }
+        guard !letters.isEmpty else { return }
+        guard remainingSeconds(at: .now) > 0 else { return }
+        beginCountdown()
+        typedBuffer.append(contentsOf: letters)
+    }
+    
+    func handleBackspace() {
+        guard !typedBuffer.isEmpty else { return }
+        guard remainingSeconds(at: .now) > 0 else { return }
+        typedBuffer.removeLast()
+    }
+    
+    func commitWord() {
+        guard !typedBuffer.isEmpty else { return }
+        guard remainingSeconds(at: .now) > 0 else { return }
+        if currentIndex < words.count, typedBuffer == words[currentIndex] {
+            correctWordCount += 1
+        }
+        currentIndex += 1
+        typedBuffer = ""
+    }
+    
+    // JUDGE JUDY
+    func letterState(at index: Int) -> LetterState {
+        guard currentIndex < words.count else { return .untyped}
+        let target = words[currentIndex]
+        let targetChars = Array(target)
+        let bufferChars = Array(typedBuffer)
+        
+        if index >= bufferChars.count { return .untyped}
+        if index >= targetChars.count { return .extraIncorrect }
+        return bufferChars[index] == targetChars[index] ? .correct : .incorrect
+    }
+    
+    //word randomizer takes 200 words from bank
+    private func generatePrompt() {
+        words = Array(bank.shuffled().prefix(200))
+    }
+
+    
     func restart() {
         startDate = nil
+        typedBuffer = ""
+        currentIndex = 0
+        correctWordCount = 0
+        generatePrompt()
+        correctWordCount = 0
     }
+    
+    func isFinished(at now: Date) -> Bool {
+        remainingSeconds(at: now) == 0
+    }
+
     
 }
