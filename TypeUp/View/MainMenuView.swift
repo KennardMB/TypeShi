@@ -52,26 +52,66 @@ struct MainMenuView: View {
                 .font(.system(size: 13, design: .monospaced))
                 
                 //words view
-                TypingView(viewModel: viewModel)
-                    .focusable()
-                    .focusEffectDisabled()
-                    .focused($isTypingFocused)
-                    .onKeyPress { press in
-                        print("key:", press.key, "chars:", String(describing: press.characters))
-                        
-                        switch press.key {
-                        case .delete, KeyEquivalent("\u{7F}"):
-                            viewModel.handleBackspace()
-                        case .space:
-                            viewModel.commitWord()
-                        default:
-                            viewModel.handleTypedCharacters(press.characters)
-                        }
-                        return .handled
+                
+                //older code
+//                if viewModel.startDate == nil {
+//                    TypingView(viewModel: viewModel)
+//                        .focusable()
+//                        .focusEffectDisabled()
+//                        .focused($isTypingFocused)
+//                        .onKeyPress { press in
+//                            print("key:", press.key, "chars:", String(describing: press.characters))
+//                            switch press.key {
+//                            case .delete, KeyEquivalent("\u{7F}"):
+//                                viewModel.handleBackspace()
+//                            case .space:
+//                                viewModel.commitWord()
+//                            default:
+//                                viewModel.handleTypedCharacters(press.characters)
+//                            }
+//                            return .handled
+//                        }
+//                        .onAppear {
+//                            isTypingFocused = true
+//                        }
+//                }
+                
+                // newer code
+                TimelineView(.periodic(from: viewModel.startDate ?? .now, by: 1)) { context in
+                    if viewModel.isFinished(at: context.date) {
+                        FinishedView(viewModel: viewModel)
+                            .focusable()
+                            .focusEffectDisabled()
+                            .focused($isTypingFocused)
+                            .onKeyPress(.tab) {
+                                viewModel.restart()
+                                return .handled
+                            }
+                            .onAppear { isTypingFocused = true }
+                    } else {
+                        TypingView(viewModel: viewModel)
+                            .focusable()
+                            .focusEffectDisabled()
+                            .focused($isTypingFocused)
+                            .onKeyPress { press in
+                                switch press.key {
+                                case .tab:
+                                    viewModel.restart()
+                                case .delete, KeyEquivalent("\u{7F}"):
+                                    viewModel.handleBackspace()
+                                case .space:
+                                    viewModel.commitWord()
+                                case .tab:
+                                        viewModel.restart()
+                                default:
+                                    viewModel.handleTypedCharacters(press.characters)
+                                }
+                                return .handled
+                            }
+                            .onAppear { isTypingFocused = true }
                     }
-                    .onAppear {
-                        isTypingFocused = true
-                    }
+                }
+
                 
                 //DEBUG TYPED BUFFER
                 Text("\(viewModel.currentIndex) |\(viewModel.typedBuffer)|")
@@ -93,6 +133,15 @@ struct MainMenuView: View {
                 .frame(maxWidth: .infinity)
             }
             .padding()
+            .onKeyPress(.tab) {
+                viewModel.restart()
+                return .handled
+            }
+            .onKeyPress(.escape) {
+                NSApplication.shared.terminate(nil)
+                return .handled
+            }
+
         }
     }
 }

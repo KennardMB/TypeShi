@@ -34,7 +34,6 @@ final class TypingViewModel {
     
     var selectedDuration: Duration = .fifteen
     private(set) var startDate: Date?
-    var isFinished: Bool = false
     
     //Keypress
     var typedBuffer: String = ""
@@ -148,8 +147,12 @@ final class TypingViewModel {
         currentIndex = 0
         correctWordCount = 0
         generatePrompt()
-        isFinished = false
         correctWordCount = 0
     }
+    
+    func isFinished(at now: Date) -> Bool {
+        remainingSeconds(at: now) == 0
+    }
+
     
 }

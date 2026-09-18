@@ -15,16 +15,7 @@ struct FinishedView: View {
         VStack{
             Text("\(viewModel.wpm) WPM")
             Text("\(viewModel.correctWordCount) Correct Words")
-            
-            VStack(spacing: 2){
-                Button("Restart (tab)") {
-                    viewModel.restart()
-                }
-                Button("Quit (esc)") {
-                    NSApplication.shared.terminate(nil)
-                }
             }
-        }
         .font(.system(size: 13, design: .monospaced))
         .frame(maxWidth: .infinity)
     }
