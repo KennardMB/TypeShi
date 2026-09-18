@@ -111,13 +111,6 @@ struct MainMenuView: View {
                             .onAppear { isTypingFocused = true }
                     }
                 }
-
-                
-                //DEBUG TYPED BUFFER
-                Text("\(viewModel.currentIndex) |\(viewModel.typedBuffer)|")
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                
                 
                 
                 VStack (spacing: 2){
