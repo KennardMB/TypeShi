@@ -75,11 +75,7 @@ final class TypingViewModel {
             return selectedDuration.rawValue
         }
         let elapsed = now.timeIntervalSince(startDate)
-        let remaining = max(0, selectedDuration.rawValue - Int(elapsed))
-        if remaining == 0 {
-            isFinished = true
-        }
-        return remaining
+        return max(0, selectedDuration.rawValue - Int(elapsed))
     }
     
     func cycleDuration() {
@@ -97,17 +93,20 @@ final class TypingViewModel {
     func handleTypedCharacters(_ characters: String) {
         let letters = characters.filter { !$0.isWhitespace }
         guard !letters.isEmpty else { return }
+        guard remainingSeconds(at: .now) > 0 else { return }
         beginCountdown()
         typedBuffer.append(contentsOf: letters)
     }
     
     func handleBackspace() {
         guard !typedBuffer.isEmpty else { return }
+        guard remainingSeconds(at: .now) > 0 else { return }
         typedBuffer.removeLast()
     }
     
     func commitWord() {
         guard !typedBuffer.isEmpty else { return }
+        guard remainingSeconds(at: .now) > 0 else { return }
         currentIndex += 1
         typedBuffer = ""
     }

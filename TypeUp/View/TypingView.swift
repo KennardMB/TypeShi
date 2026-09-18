@@ -22,7 +22,7 @@ struct TypingView: View {
             }
         }
         .font(.system(size: 16, design: .monospaced))
-        .frame(maxWidth: 500, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .clipped()
     }
     
