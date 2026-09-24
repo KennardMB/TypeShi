@@ -11,23 +11,32 @@ Kennard (“Kean”) is building this by hand at the Apple Developer Academy (Ba
 **TypeUp** is a Monkeytype-style typing test that lives in the **macOS menu bar**, not as a normal document window.
 
 - Closed: only a menu bar icon (`keyboard.fill`).
-- Open: a compact popover. Timer, settings gear, history, one line of words to type, restart / quit.
+- Open: a compact popover. Timer, settings gear, history, one line of words to type, restart / hide. Hide and Escape leave the menu bar icon running.
 
 Reference product: [Monkeytype](https://github.com/monkeytypegame/monkeytype). Look is CSS + default config, not an official Figma. Defaults to copy from that repo: `Roboto_Mono`, theme tokens like Serika Dark (`--bg-color`, `--main-color`, untyped vs typed vs error). TypeUp is a small popover, not a full browser page — one word line, not a tall test board.
 
 ### Typing UX (product)
 
-The caret stays on the **first visible word**. The user types that word. On **space**, the whole list jumps left so the next word sits under the caret. **No animation.**
+The word being typed sits in the **middle** of the line. A blinking line caret marks where the next character goes. On **space**, the whole line jumps left instantly so the next word sits in the middle. Committed words stay visible on the left.
 
 Recognition is Monkeytype-like: letter vs expected letter (correct / incorrect / untyped), extra letters past the word length, space commits the word even if it was wrong.
 
 ### Word bank (bundle)
 
-One English list for now: `TypeUp/Resources/en_1k.json`. JSON **array of strings** (`["the", "of", …]`), 1000 words, from [deekayen’s 1–1000 gist](https://gist.githubusercontent.com/deekayen/4148741/raw/98d35708fa344717d8eee15d11987de6c8e26d7d/1-1000.txt). Decode as `[String]`. Load with `Bundle.main.url(forResource: "en_1k", withExtension: "json")`. Do **not** add a second corpus until Settings (slice G). The file is mostly lowercase; a few entries are `"I"` or contractions (`don't`, `won't`). Treat those as data, not as punctuation/capitalization settings.
+Two English lists, chosen in Settings:
 
-### Settings (later)
+- `TypeUp/Resources/en_1k.json` — 1000 words, from [deekayen’s 1–1000 gist](https://gist.githubusercontent.com/deekayen/4148741/raw/98d35708fa344717d8eee15d11987de6c8e26d7d/1-1000.txt). Mostly lowercase; a few entries are `"I"` or contractions (`don't`, `won't`). Treat those as data, not as the punctuation/capitalization settings.
+- `TypeUp/Resources/en_5k.json` — first 5000 lines of [google-10000-english-usa-no-swears](https://github.com/first20hours/google-10000-english). A different list, not “the 1k file plus 4000 more.”
 
-Punctuation on/off, capitalization on/off. Optional later: 1000 vs 5000 word corpus. These are **filters on word generation**, not their own engine.
+Both are JSON **arrays of strings**, common words first. Decode as `[String]`. Load with `Bundle.main.url(forResource:withExtension:)`. A test is 200 draws from the **first 200** words of the selected list. The setting changes which 200 that is.
+
+### Settings
+
+Punctuation on/off, capitalization on/off, and 1000 vs 5000. These are **filters on word generation**, not their own engine. They live on `SettingsViewModel` and are copied into `TypingViewModel` when a toggle changes. A running test keeps its current words; restart builds a new list. The gear opens `SettingsView`.
+
+### Difficulty (slice I)
+
+The generator copies Monkeytype’s default draw. It uses the 200 most common words in the selected list, picks any of them with equal chance, and allows a word to appear again as long as it is not the same as the word just before it. No length control in Settings.
 
 ### Out of scope for now
 
@@ -60,7 +69,7 @@ Typical loop:
 
 Do **not** “fix” architecture by rewriting his files. Flag it, then teach the smaller correct step.
 
-Leftover from an early tutorial (do not wire into TypeUp): `Task` / `TaskModel.swift`, `TaskViewModel.swift`, `ContentView.swift` (todo list). Gear and history `NavigationLink`s currently open `ContentView` — that is a later cleanup, not the next slice.
+Leftover from an early tutorial (do not wire into TypeUp): `Task` / `TaskModel.swift`, `TaskViewModel.swift`, `ContentView.swift` (todo list). The gear opens `SettingsView`. The history `NavigationLink` still opens `ContentView` — that cleanup stays parked with History.
 
 ---
 
@@ -104,7 +113,7 @@ Kean says **Validate mode**, “check my understanding,” or offers his own pla
 - Split ViewModels by **screen/session** (Settings, History later), not by widget.
 - Prefer `@Observable` + `@MainActor` on the ViewModel; the view owns it with `@State`.
 - Countdown is **Date math**, not `seconds -= 1`. Remaining = duration − `now.timeIntervalSince(startDate)`. Idle (`startDate == nil`) shows 15 / 30 / 60.
-- Prompt model: `words: [String]` + `currentIndex`. Visible line is `words[currentIndex…]`, clipped. Space increments the index and clears the typed buffer. Color is per-letter state on the current word. The caret does not walk right; the window over the array moves.
+- Prompt model: `words: [String]` + `currentIndex`. The line shows committed words, then the current word, then the rest, clipped on both sides. The current word stays centered. Space jumps that window left instantly. Color is per-letter on the current word and on committed words. The caret walks through the current word.
 
 ---
 
@@ -112,15 +121,17 @@ Kean says **Validate mode**, “check my understanding,” or offers his own pla
 
 | Piece | Status |
 |---|---|
-| Menu bar extra → `MenuBarContentView` → `MainMenuView` | Done |
+| Menu bar extra → `MainMenuView` | Done |
 | Duration cycle 15 → 30 → 60, Date-based countdown, `TimelineView` | Done |
-| `restart()` clears `startDate` | Done (must also reshuffle words once a word list exists) |
-| Debug **Begin Countdown** button | Temporary; first real keystroke should call `beginCountdown()` |
-| Word bank JSON | `TypeUp/Resources/en_1k.json` exists; not loaded yet |
-| Word line | Hardcoded dummy string |
-| Keyboard input, recognition, color, viewport shift | Not started |
-| `SettingsView` / `HistoryView` | `Hello, World!` stubs |
-| Timer hits 0 | Number clamps at 0; typing is not frozen yet |
+| `restart()` clears the session and reshuffles words | Done |
+| First keystroke calls `beginCountdown()` | Done |
+| Word banks | `en_1k.json` and `en_5k.json`, 200-word prompt |
+| Keyboard input, recognition, color, viewport shift | Done |
+| Time remaining == 0 | Typing stops; `FinishedView` shows WPM and correct-word count |
+| Settings: punctuation, capitalization, 1,000 vs 5,000 | Done. Gear opens `SettingsView` |
+| Backspace onto the previous word | Done. Committed buffers are kept |
+| Difficulty | Done (slice I). 200 most common words, equal chance, no word twice in a row |
+| History | Clock icon still opens the leftover todo `ContentView` |
 
 Session type: `TypeUp/ViewModels/TypingViewModel.swift` (`@MainActor @Observable`). View: `TypeUp/View/MainMenuView.swift`.
 
@@ -130,23 +141,30 @@ Session type: `TypeUp/ViewModels/TypingViewModel.swift` (`@MainActor @Observable
 
 Why-this-then-that graphs: [SLICE_ORDER.md](SLICE_ORDER.md) (open with Markdown preview).
 
-A slice is something Kean can run and see. Do these **in `TypingViewModel` + `MainMenuView`**. Leave Settings as a stub until G.
+A slice is something Kean can run and see.
 
 | | Slice | Why |
 |---|---|---|
 | **Done** | Timer: cycle 15/30/60, Date countdown, restart | First real session state |
-| **A** | **One word bank + generate a list + show it** | Replaces the dummy sentence. Load `en_1k.json` from the bundle, shuffle, fill `words: [String]`. Not two corpora. `restart()` reshuffles. `[String]` is the model — not SwiftData, not a second ViewModel. Do not re-download or duplicate the JSON. |
-| **B** | **Keystrokes into the session** 3| First character → `beginCountdown()`. Then remove the debug start button. `MenuBarExtra` must actually receive keys (first responder / focus). Treat this as its own slice. |
-| **C** | **Recognition** | `currentIndex` + typed buffer for that word. Letter vs expected letter. Extra letters past the target. **Space commits** (even if wrong) and advances. **Backspace current word only** — empty buffer is a no-op; does **not** un-commit the previous word. |
+| **A** | **One word bank + generate a list + show it** | Load a JSON bank, shuffle, fill `words: [String]`. `restart()` reshuffles. `[String]` is the model — not SwiftData, not a second ViewModel. |
+| **B** | **Keystrokes into the session** | First character → `beginCountdown()`. `MenuBarExtra` receives keys. |
+| **C** | **Recognition** | `currentIndex` + typed buffer for that word. Letter vs expected letter. Extra letters past the target. **Space commits** (even if wrong) and advances. |
 | **D** | **Color** | Untyped / correct / incorrect per character. View of C’s state, not a second brain. |
-| **E** | **Viewport** | Caret glued to the first visible word; list jumps left on space; no animation. After C works on a static line so layout and matching are not debugged at once. |
-| **F** | **Time remaining == 0 → ignore further keys** | Only meaningful once B–C exist. |
-| **G** | **Settings: punctuation, capitalization, optional 1000 vs 5000** | Inputs to the generator from A. Build A as plain lowercase words so G is a transform, not a rewrite. Own Settings with its **own** ViewModel when that screen has real state. Wire the gear `NavigationLink` to `SettingsView` as part of this work (not before). |
-| **H** *(later)* | **Backspace onto previous word** | Monkeytype-default: if `typedBuffer` is empty and `currentIndex > 0`, backspace **un-commits** — `currentIndex -= 1`, restore that word’s typed string (e.g. `"thenjs"`), so extra letters can be deleted. Needs C’s commit **and** keeping per-word buffers, not throwing them away on space. Do **not** build this in C. |
+| **E** | **Viewport** | The word being typed stays in the middle. A blinking line caret sits in that word. On space the whole line jumps left instantly; committed words remain on the left. |
+| **F** | **Time remaining == 0 → ignore further keys** | Typing stops and the finish screen shows. |
+| **G** | **Settings: punctuation, capitalization, 1000 vs 5000** | Inputs to the generator from A. `SettingsViewModel` owns the toggles. Gear opens `SettingsView`. A running test is not reshuffled until restart. |
+| **H** | **Backspace onto previous word** | If `typedBuffer` is empty and `currentIndex > 0`, backspace **un-commits** — `currentIndex -= 1`, restore that word’s typed string (e.g. `"thenjs"`). Exact matches give the correct-word count back. |
+| **I** | **Difficulty: how often each word length shows** | `generatePrompt()` draws from the 200 most common words in the selected bank. Each is equally likely. A word may repeat, but not twice in a row. |
 
-**Park until after Typing Mode:** **H** (backspace onto previous word), History, WPM, dual JSON corpora, fixing history’s `NavigationLink`, deleting the leftover `Task` types (optional cleanup, never required to move A forward).
+**Park:** History, fixing history’s `NavigationLink`, deleting the leftover `Task` types. The finish screen already shows WPM and correct words; live WPM during the test is not a slice.
 
-A and B can swap if Kean wants keys on the dummy sentence first. Prefer **A then B**: the dummy string will be thrown away, and A is how `restart()` becomes real.
+### Slice I — difficulty
+
+Monkeytype’s default test uses its `english` list: 200 common words. Each word in that list is equally likely, a word may show up again later, and the same word is not placed twice in a row. That list is 130 short (1–4), 66 medium (5–7), and 4 long (8+), so a test is about that mix. TypeUp does the same draw on the first 200 words of whichever bank is selected. Those 200 are not the same list, so the mix is close rather than identical: the 1,000-word file’s first 200 are 153 short, 46 medium, and 1 long. The 5,000-word file’s first 200 are 142 short, 49 medium, and 9 long.
+
+Words after those first 200 stay in the file and are not drawn. Punctuation and capitalization still run after the draw. Judging stays buffer vs `words[currentIndex]`. No new control on `SettingsView`.
+
+Monkeytype’s own “difficulty” control (normal / expert / master) is what happens after a wrong letter. It is not this slice.
 
 ---
 
@@ -158,6 +176,8 @@ Word-at-a-time, not “the whole sentence as one string”:
 - Buffer = what they typed for this word.
 - For each index `i` in the buffer: match `target[i]` or mark incorrect.
 - Letters past `target.count` are extra-incorrect (still shown).
-- Space: commit, `currentIndex += 1`, buffer = `""` (that commit is also when the list jumps, slice E).
-- Backspace: `removeLast()` on `typedBuffer` only. Empty buffer → do nothing. Does **not** decrement `currentIndex` (that is **H**, later).
+- Space: commit, save that word’s typed string, `currentIndex += 1`, buffer = `""` (that commit is also when the line jumps left instantly, slice E).
+- Backspace, buffer not empty: `removeLast()` on `typedBuffer`.
+- Backspace, buffer empty and `currentIndex > 0`: un-commit. `currentIndex -= 1`, restore the saved string. If that string was an exact match, `correctWordCount` drops by one.
+- Backspace, buffer empty and `currentIndex == 0`: do nothing.
 - First key of the session (`startDate == nil`): `beginCountdown()`.

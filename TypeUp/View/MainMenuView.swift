@@ -10,6 +10,7 @@ import SwiftUI
 struct MainMenuView: View {
     
     @State private var viewModel = TypingViewModel()
+    @State private var settings = SettingsViewModel()
     @FocusState private var isTypingFocused: Bool
     
     
@@ -39,7 +40,11 @@ struct MainMenuView: View {
                         }
                     }
                     
-                    NavigationLink (destination: ContentView()){
+                    NavigationLink {
+                        SettingsView(settings: settings) {
+                            viewModel.updateOptions(settings.options)
+                        }
+                    } label: {
                         Image(systemName: "gearshape.fill")
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -52,33 +57,8 @@ struct MainMenuView: View {
                 .font(.system(size: 13, design: .monospaced))
                 
                 //words view
-                
-                //older code
-//                if viewModel.startDate == nil {
-//                    TypingView(viewModel: viewModel)
-//                        .focusable()
-//                        .focusEffectDisabled()
-//                        .focused($isTypingFocused)
-//                        .onKeyPress { press in
-//                            print("key:", press.key, "chars:", String(describing: press.characters))
-//                            switch press.key {
-//                            case .delete, KeyEquivalent("\u{7F}"):
-//                                viewModel.handleBackspace()
-//                            case .space:
-//                                viewModel.commitWord()
-//                            default:
-//                                viewModel.handleTypedCharacters(press.characters)
-//                            }
-//                            return .handled
-//                        }
-//                        .onAppear {
-//                            isTypingFocused = true
-//                        }
-//                }
-                
-                // newer code
                 TimelineView(.periodic(from: viewModel.startDate ?? .now, by: 1)) { context in
-                    if viewModel.isFinished(at: context.date) {
+                    if viewModel.remainingSeconds(at: context.date) == 0 {
                         FinishedView(viewModel: viewModel)
                             .focusable()
                             .focusEffectDisabled()
@@ -101,8 +81,6 @@ struct MainMenuView: View {
                                     viewModel.handleBackspace()
                                 case .space:
                                     viewModel.commitWord()
-                                case .tab:
-                                        viewModel.restart()
                                 default:
                                     viewModel.handleTypedCharacters(press.characters)
                                 }
@@ -118,8 +96,8 @@ struct MainMenuView: View {
                         viewModel.restart()
                     }
                     
-                    Button("Quit (esc)"){
-                        NSApplication.shared.terminate(nil)
+                    Button("Hide (esc)") {
+                        NSApp.hide(nil)
                     }
                 }
                 .font(.system(size: 11))
@@ -131,7 +109,7 @@ struct MainMenuView: View {
                 return .handled
             }
             .onKeyPress(.escape) {
-                NSApplication.shared.terminate(nil)
+                NSApp.hide(nil)
                 return .handled
             }
 

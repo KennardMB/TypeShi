@@ -4,6 +4,8 @@ Open this file in Cursor and use **Markdown preview** (preview the file, not the
 
 Read **top → bottom** as “this is why we need the next box.” Dashed boxes are already done or parked.
 
+**Status:** timer and slices A–I are in the app. History and the leftover task list stay parked.
+
 ```mermaid
 flowchart TB
   P["Big feature: type like Monkeytype<br/>caret stays, space jumps the line left"]
@@ -21,7 +23,7 @@ flowchart TB
   NeedPaint --> D["D. Color: untyped / correct / incorrect"]
 
   C --> NeedJump["So we need the line to behave like the product"]
-  NeedJump --> E["E. Viewport: list jumps left, no animation"]
+  NeedJump --> E["E. Viewport: active word stays in the middle"]
 
   B --> NeedStop["So we need the clock to end the test"]
   C --> NeedStop
@@ -29,12 +31,17 @@ flowchart TB
 
   A --> NeedKnobs["So we can flavor generation without rewriting the engine"]
   F --> NeedKnobs
-  NeedKnobs --> G["G. Settings: punctuation, caps, optional 1000 vs 5000"]
+  NeedKnobs --> G["G. Settings: punctuation, caps, 1000 vs 5000"]
 
-  Done["Already done: 15/30/60 + Date countdown"] -.-> B
+  G --> NeedMix["So a bigger bank does not flood the line with long words"]
+  NeedMix --> I["I. Difficulty: fixed mix, short more often than long"]
+
+  Done["Already done: timer, A–H"] -.-> B
   Done -.-> F
+  Done -.-> G
+  Done -.-> H["H. Backspace onto previous word"]
 
-  Park["Parked: H backspace onto previous word, History, WPM, two corpora, leftover Task list"]
+  Park["Parked: History, leftover Task list"]
 ```
 
 Same chain as a straight pipeline (what you type next):
@@ -47,8 +54,9 @@ flowchart LR
   B --> F
   A --> G["G Settings knobs"]
   F --> G
-  C -.-> H["H Backspace previous word (later)"]
-  E -.-> H
+  G --> I["I Difficulty"]
+  C --> H["H Backspace previous word"]
+  E --> H
 ```
 
 Where “show words” vs “each key is written” sit:

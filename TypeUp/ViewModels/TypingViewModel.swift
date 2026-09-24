@@ -43,6 +43,12 @@ final class TypingViewModel {
     
     // Remember how many words were exact; expose WPM
     private(set) var correctWordCount: Int = 0
+
+    // Each committed word, so backspace can restore it (slice H).
+    private var committedBuffers: [String] = []
+
+    // Inputs from Settings. The generator reads these; the judge does not.
+    private(set) var promptOptions = PromptOptions()
     
     var wpm: Int {
         let minutes = Double(selectedDuration.rawValue) / 60.0
@@ -52,19 +58,48 @@ final class TypingViewModel {
     
     
     // TypingView Logic
-    private let bank : [String]
+    private let bank1k: [String]
+    private let bank5k: [String]
     var words: [String] = []
+
+    struct PromptOptions: Equatable {
+        var punctuation = false
+        var capitalization = false
+        var corpus: Corpus = .oneThousand
+    }
+
+    enum Corpus: String, CaseIterable, Identifiable {
+        case oneThousand
+        case fiveThousand
+
+        var id: Self { self }
+
+        var title: String {
+            switch self {
+            case .oneThousand: return "1,000"
+            case .fiveThousand: return "5,000"
+            }
+        }
+
+        fileprivate var resourceName: String {
+            switch self {
+            case .oneThousand: return "en_1k"
+            case .fiveThousand: return "en_5k"
+            }
+        }
+    }
     
     init() {
-        bank = Self.loadBank()
+        bank1k = Self.loadBank(named: Corpus.oneThousand.resourceName)
+        bank5k = Self.loadBank(named: Corpus.fiveThousand.resourceName)
         generatePrompt()
     }
     
     
-    private static func loadBank() -> [String] {
-// this gets the en_1k.json path
-        let url = Bundle.main.url(forResource: "en_1k", withExtension: "json")
-        ?? Bundle.main.url(forResource: "en_1k", withExtension: "json", subdirectory: "Resources")
+    private static func loadBank(named name: String) -> [String] {
+// this gets the JSON word-list path
+        let url = Bundle.main.url(forResource: name, withExtension: "json")
+        ?? Bundle.main.url(forResource: name, withExtension: "json", subdirectory: "Resources")
         // this says "if you have url (path), then continue as URL (fixed)
         guard let url else { return [] }
         do {
@@ -108,8 +143,18 @@ final class TypingViewModel {
     }
     
     func handleBackspace() {
-        guard !typedBuffer.isEmpty else { return }
         guard remainingSeconds(at: .now) > 0 else { return }
+        if typedBuffer.isEmpty {
+            // Un-commit the previous word and put its letters back.
+            guard currentIndex > 0, !committedBuffers.isEmpty else { return }
+            currentIndex -= 1
+            let restored = committedBuffers.removeLast()
+            if currentIndex < words.count, restored == words[currentIndex] {
+                correctWordCount = max(0, correctWordCount - 1)
+            }
+            typedBuffer = restored
+            return
+        }
         typedBuffer.removeLast()
     }
     
@@ -119,8 +164,25 @@ final class TypingViewModel {
         if currentIndex < words.count, typedBuffer == words[currentIndex] {
             correctWordCount += 1
         }
+        committedBuffers.append(typedBuffer)
         currentIndex += 1
         typedBuffer = ""
+    }
+
+    func committedTyped(at index: Int) -> String {
+        guard committedBuffers.indices.contains(index) else { return "" }
+        return committedBuffers[index]
+    }
+
+    /// Settings are a filter on the next list. A running test keeps its current words.
+    func updateOptions(_ options: PromptOptions) {
+        let changed = options != promptOptions
+        promptOptions = options
+        guard changed, startDate == nil else { return }
+        typedBuffer = ""
+        currentIndex = 0
+        correctWordCount = 0
+        generatePrompt()
     }
     
     // JUDGE JUDY
@@ -135,9 +197,65 @@ final class TypingViewModel {
         return bufferChars[index] == targetChars[index] ? .correct : .incorrect
     }
     
-    //word randomizer takes 200 words from bank
+    // Same draw as Monkeytype's default test: the 200 most common words,
+    // each one equally likely. A word may appear again, but not twice in a row.
     private func generatePrompt() {
-        words = Array(bank.shuffled().prefix(200))
+        let pool = promptOptions.corpus == .fiveThousand && !bank5k.isEmpty ? bank5k : bank1k
+        let common = Array(pool.prefix(200))
+        var picked: [String] = []
+        picked.reserveCapacity(200)
+        var previous: String?
+        while picked.count < 200, !common.isEmpty {
+            guard let word = common.randomElement() else { break }
+            if word == previous, common.count > 1 { continue }
+            picked.append(word)
+            previous = word
+        }
+        words = applySettings(to: picked)
+        committedBuffers = []
+    }
+
+    /// Punctuation and capitalization change the target strings. Matching stays buffer vs word.
+    private func applySettings(to source: [String]) -> [String] {
+        guard promptOptions.punctuation || promptOptions.capitalization else { return source }
+
+        var output: [String] = []
+        output.reserveCapacity(source.count)
+        var nextIsCapital = false
+        var wordsUntilStop = Int.random(in: 6...14)
+
+        for (index, original) in source.enumerated() {
+            var word = original
+            let isLast = index == source.count - 1
+
+            if promptOptions.capitalization {
+                let randomCap = Int.random(in: 0..<8) == 0
+                if index == 0 || nextIsCapital || randomCap {
+                    word = capitalizingFirst(word)
+                }
+            }
+            nextIsCapital = false
+
+            if promptOptions.punctuation, let last = word.last, last.isLetter {
+                wordsUntilStop -= 1
+                if wordsUntilStop <= 0 || isLast {
+                    let endings = [".", ".", ".", "?", "!"]
+                    word += endings.randomElement() ?? "."
+                    nextIsCapital = promptOptions.capitalization
+                    wordsUntilStop = Int.random(in: 6...14)
+                } else if Int.random(in: 0..<6) == 0 {
+                    word += ","
+                }
+            }
+
+            output.append(word)
+        }
+        return output
+    }
+
+    private func capitalizingFirst(_ word: String) -> String {
+        guard let first = word.first, first.isLetter else { return word }
+        return String(first).uppercased() + word.dropFirst()
     }
 
     
@@ -146,13 +264,7 @@ final class TypingViewModel {
         typedBuffer = ""
         currentIndex = 0
         correctWordCount = 0
+        committedBuffers = []
         generatePrompt()
-        correctWordCount = 0
     }
-    
-    func isFinished(at now: Date) -> Bool {
-        remainingSeconds(at: now) == 0
-    }
-
-    
 }

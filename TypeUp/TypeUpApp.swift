@@ -10,11 +10,9 @@ import SwiftUI
 @main 
 struct TypeUpApp: App {
     var body: some Scene {
-        //        WindowGroup {
-        //            ContentView()
-        //        }
         MenuBarExtra("TypeUp", systemImage: "keyboard.fill") {
-            MenuBarContentView()            
+            MainMenuView()
+                .frame(width: 500)
         }
         .menuBarExtraStyle(.window)
         
